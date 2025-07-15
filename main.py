@@ -10,7 +10,8 @@ import uvicorn
 import pandas as pd
 from scripts.api_data_fetcher import FREDFetcher
 from scripts.database_handler import MyDBRepo
-from scripts.recovery_index import RecoveryIndexCalculator
+from scripts.recovery import EconomicRecoveryIndexCalculator
+from datetime import date
 
 # Configure logging
 logging.basicConfig(
@@ -41,7 +42,7 @@ async def root():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your domain
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,8 +118,17 @@ def compute_recovery_index(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     """Compute recovery index from economic data."""
     try:
         logger.info("Computing recovery index")
-        calculator = RecoveryIndexCalculator(df, inverse_indicators=INVERSE_INDICATORS)
-        result_df = calculator.compute()
+        #calculator = RecoveryIndexCalculator(df, inverse_indicators = INVERSE_INDICATORS)
+
+        calculator = EconomicRecoveryIndexCalculator(
+        reverse_indicators = ['unemployment'],
+        baseline_range = (date(2019, 10, 1), date(2020, 1, 1)),
+        trough_range = (date(2020, 3, 1), date(2020, 5, 31))
+        )
+
+        result_df = calculator.fit_transform(df)
+        
+        #result_df = calculator.compute()
         logger.info("Successfully computed recovery index")
         return result_df
         
@@ -311,7 +321,21 @@ async def get_indicators_range(
             raise HTTPException(status_code=500, detail="Failed to prepare latest data")
 
         # Convert result_df to records for frontend
-        history_records = result_df.reset_index().astype(str).to_dict(orient="records")
+        result_df = result_df.reset_index()
+
+        # Rename 'index' to 'Date'
+        if 'index' in result_df.columns:
+            result_df = result_df.rename(columns={'index': 'Date'})
+        
+        # Format 'Date' properly
+        result_df['Date'] = pd.to_datetime(result_df['Date'], errors='coerce').dt.strftime('%Y-%m-%d')
+        
+        # Drop any rows where 'Date' couldn't be parsed
+        result_df = result_df.dropna(subset=['Date'])
+        
+        # Convert to records
+        history_records = result_df.to_dict(orient="records")
+
 
         logger.info(f"Returning {len(history_records)} records for selected range")
 

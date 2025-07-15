@@ -35,10 +35,12 @@ class FREDFetcher:
         data = {}
         for name, series_id in series_map.items():
             logger.info(f"Fetching FRED series: {series_id} as '{name}'")
+            
             try:
                 series_data = self.fred.get_series(series_id, observation_start = start, observation_end = end)
                 data[name] = series_data
                 logger.debug(f"Retrieved {len(series_data)} records for {name}")
+                
             except Exception as e:
                 logger.error(f"Failed to fetch FRED series '{series_id}': {e}")
                 data[name] = pd.Series(dtype='float64')  # fallback empty series
