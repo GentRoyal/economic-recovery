@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Economic Recovery Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #1a1d23;
+            --bg-tertiary: #242831;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #7c3aed;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: rgba(148, 163, 184, 0.1);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+            --glass-bg: rgba(26, 29, 35, 0.8);
+            --glass-border: rgba(148, 163, 184, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .header .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            backdrop-filter: blur(20px);
+            font-size: 0.875rem;
+            color: var(--accent-success);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--glass-bg);
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-group::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-group:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-primary);
+        }
+
+        .control-group:hover::before {
+            left: 100%;
+        }
+
+        .control-group label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .control-group input, 
+        .control-group select {
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .control-group input:focus, 
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .btn {
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-success), #059669);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--accent-primary), #0891b2);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-tertiary);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 28px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: var(--shadow-sm);
+        }
+
+        input:checked + .slider {
+            background: var(--accent-success);
+            border-color: var(--accent-success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+            background: white;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .kpi-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.25rem;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            height: 200px;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-primary);
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kpi-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.375rem 0.875rem;
+            border-radius: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .kpi-trend.up {
+            color: var(--accent-success);
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .kpi-trend.down {
+            color: var(--accent-danger);
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .kpi-trend.neutral {
+            color: var(--accent-warning);
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .kpi-value {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            line-height: 1;
+        }
+
+        .kpi-change {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .chart-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            margin-bottom: 3rem;
+            position: relative;
+            height: 600px;
+            transition: all 0.3s ease;
+        }
+
+        .chart-container:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chart-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-controls label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .chart-controls select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 450px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transform: translateX(400px);
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            border: 1px solid var(--accent-success);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: 1px solid var(--accent-danger);
+        }
+
+        .status.info {
+            background: rgba(0, 212, 255, 0.9);
+            color: white;
+            border: 1px solid var(--accent-primary);
+        }
+
+        .arrow {
+            font-size: 1.125rem;
+            font-weight: bold;
+        }
+
+        .arrow.up {
+            color: var(--accent-success);
+        }
+
+        .arrow.down {
+            color: var(--accent-danger);
+        }
+
+        .last-updated {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border-radius: 0.75rem;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                padding: 1.5rem;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+            
+            .chart-container {
+                height: 550px;
+            }
+            
+            .chart-wrapper {
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: space-between;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .chart-container {
+                height: 500px;
+            }
+            
+            .chart-wrapper {
+                height: 350px;
+            }
+            
+            .status {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                transform: translateY(-100px);
+            }
+            
+            @keyframes slideIn {
+                to {
+                    transform: translateY(0);
+                }
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00b8d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> Economic Recovery Dashboard</h1>
+            <p>Real-time monitoring of key economic indicators</p>
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>Live Data</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="startDate"><i class="fas fa-calendar-alt"></i> Start Date:</label>
+                <input type="date" id="startDate" value="2020-01-01">
+            </div>
+            
+            <div class="control-group">
+                <label for="endDate"><i class="fas fa-calendar-check"></i> End Date:</label>
+                <input type="date" id="endDate" value="2024-12-31">
+            </div>
+            
+            <button class="btn btn-primary" onclick="fetchDataForRange()">
+                <i class="fas fa-sync-alt"></i>
+                Update Range
+            </button>
+            
+            <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-refresh"></i>
+                Refresh Now
+            </button>
+            
+            <div class="control-group">
+                <label for="autoRefresh"><i class="fas fa-robot"></i> Auto Refresh:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="kpi-grid" id="kpiGrid">
+            <!-- KPI cards will be dynamically populated -->
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-chart-area"></i>
+                    Recovery Index vs Economic Indicators
+                </div>
+                <div class="chart-controls">
+                    <label for="indicatorSelect"><i class="fas fa-layer-group"></i> Compare with:</label>
+                    <select id="indicatorSelect" onchange="updateChart()">
+                        <option value="gdp_real">Real GDP</option>
+                        <option value="unemployment">Unemployment Rate</option>
+                        <option value="exports">Exports</option>
+                        <option value="trade_balance">Trade Balance</option>
+                        <option value="jobs">Job Openings</option>
+                        <option value="total_retail_sales">Retail Sales</option>
+                        <option value="industrial_production">Industrial Production</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="recoveryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated">
+            <i class="fas fa-clock"></i>
+            <span>Loading...</span>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        let autoRefreshInterval;
+        let currentData = null;
+        let historyData = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchData();
+            initializeChart();
+            updateLastUpdated();
+        });
+
+        function showStatus(message, type = 'info') {
+            const existingStatus = document.querySelector('.status');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+
+            const icons = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            };
+
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.innerHTML = `<i class="${icons[type]}"></i><span>${message}</span>`;
+            document.body.appendChild(status);
+
+            setTimeout(() => {
+                status.style.animation = 'slideOut 0.3s ease-out forwards';
+                setTimeout(() => status.remove(), 300);
+            }, 4000);
+        }
+
+        async function fetchData() {
+            try {
+                showStatus('Fetching latest data...', 'info');
+                
+                const [indicatorsResponse, historyResponse] = await Promise.all([
+                    fetch('/indicators'),
+                    fetch('/history')
+                ]);
+
+                if (!indicatorsResponse.ok || !historyResponse.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                
+                currentData = await indicatorsResponse.json();
+                historyData = await historyResponse.json();
+                
+                updateKPIs();
+                updateChart();
+                showStatus('Data synchronized successfully', 'success');
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showStatus('Failed to synchronize data', 'error');
+            }
+        }
+
+        async function fetchDataForRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                showStatus('Please select both start and end dates', 'error');
+                return;
+            }
+
+            try {
+                showStatus('Fetching data for selected range...', 'info');
+                const response = await fetch(`/indicators-range?start_date=${startDate}&end_date=${endDate}`);
+                if (!response.ok) throw new Error('Failed to fetch range data');
+                
+                const data = await response.json();
+                currentData = data.latest;
+                historyData = data.history;
+                
+                updateKPIs();
+                updateChart();
+                showStatus('Range data updated successfully', 'success');
+            } catch (error) {
+                console.error('Error fetching range data:', error);
+                showStatus('Error fetching range data', 'error');
+            }
+        }
+
+        function updateKPIs() {
+            const kpiGrid = document.getElementById('kpiGrid');
+            kpiGrid.innerHTML = '';
+
+            const kpiKeys = [
+                { key: 'gdp_real', label: 'Real GDP', format: 'currency', unit: 'B', icon: 'fas fa-chart-bar' },
+                { key: 'unemployment', label: 'Unemployment Rate', format: 'percentage', icon: 'fas fa-user-slash' },
+                { key: 'exports', label: 'Exports', format: 'currency', unit: 'B', icon: 'fas fa-shipping-fast' },
+                { key: 'trade_balance', label: 'Trade Balance', format: 'currency', unit: 'M', icon: 'fas fa-balance-scale' },
+                { key: 'jobs', label: 'Job Openings', format: 'number', unit: 'K', icon: 'fas fa-briefcase' },
+                { key: 'total_retail_sales', label: 'Retail Sales', format: 'currency', unit: 'M', icon: 'fas fa-shopping-cart' },
+                { key: 'industrial_production', label: 'Industrial Production', format: 'number', icon: 'fas fa-industry' },
+                { key: 'recovery_index', label: 'Recovery Index', format: 'index', icon: 'fas fa-tachometer-alt' }
+            ];
+
+            kpiKeys.forEach(kpi => {
+                if (currentData[kpi.key] !== undefined) {
+                    const previousValue = getPreviousValue(kpi.key);
+                    const card = createKPICard(kpi, currentData[kpi.key], previousValue, kpi.unit);
+                    kpiGrid.appendChild(card);
+                }
+            });
+        }
+
+        function getPreviousValue(key) {
+            if (historyData.length < 2) return null;
+            const previousRecord = historyData[historyData.length - 2];
+            return previousRecord[key];
+        }
+
+        function createKPICard(kpi, currentValue, previousValue, unit) {
+            const card = document.createElement('div');
+            card.className = 'kpi-card';
+
+            const trend = getTrend(currentValue, previousValue, kpi.key);
+            const formattedValue = formatValue(currentValue, kpi.format, unit);
+
+            card.innerHTML = `
+                <div class="kpi-header">
+                    <div class="kpi-title">
+                        <i class="${kpi.icon} kpi-icon"></i>
+                        ${kpi.label}
+                    </div>
+                    <div class="kpi-trend ${trend.class}">
+                        <span class="arrow ${trend.class}">${trend.arrow}</span>
+                        ${trend.text}
+                    </div>
+                </div>
+                <div class="kpi-value">${formattedValue}</div>
+                <div class="kpi-change">${trend.change}</div>
+            `;
+
+            return card;
+        }
+
+        function getTrend(current, previous, key) {
+            if (previous === undefined || previous === null) {
+                return { class: 'neutral', arrow: '→', text: 'N/A', change: 'No comparison data available' };
+            }
+
+            const currentNum = parseFloat(current);
+            const previousNum = parseFloat(previous);
+            
+            if (isNaN(currentNum) || isNaN(previousNum)) {
+                return { class: 'neutral', arrow: '→', text: 'N/A', change: 'Invalid data' };
+            }
+
+            const diff = currentNum - previousNum;
+            const percentChange = Math.abs((diff / previousNum) * 100).toFixed(2);
+            const isInverse = key === 'unemployment';
+            
+            if (Math.abs(diff) < 0.001) {
+                return {
+                    class: 'neutral',
+                    arrow: '→',
+                    text: 'Stable',
+                    change: 'No change from last period'
+                };
+            } else if (diff > 0) {
+                return {
+                    class: isInverse ? 'down' : 'up',
+                    arrow: '↗',
+                    text: isInverse ? 'Rising' : 'Growing',
+                    change: `+${percentChange}% from last period`
+                };
+            } else {
+                return {
+                    class: isInverse ? 'up' : 'down',
+                    arrow: '↘',
+                    text: isInverse ? 'Improving' : 'Declining',
+                    change: `-${percentChange}% from last period`
+                };
+            }
+        }
+
+        function formatValue(value, format, unit) {
+            let num = parseFloat(value);
+            if (isNaN(num)) return 'N/A';
+        
+            // Convert unit if possible
+            if (unit === 'M' && num >= 1000) {
+                num = num / 1000;
+                unit = 'B';
+            } else if (unit === 'K' && num >= 1000) {
+                num = num / 1000;
+                unit = 'M';
+            }
+        
+            let formatted;
+            switch (format) {
+                case 'currency':
+                    formatted = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1
+                    }).format(num);
+                    break;
+                case 'percentage':
+                    formatted = `${num.toFixed(2)}%`;
+                    break;
+                case 'number':
+                    formatted = new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1
+                    }).format(num);
+                    break;
+                case 'index':
+                    formatted = `${(num).toFixed(2)}%`;
+                    break;
+                default:
+                    formatted = num.toFixed(2);
+            }
+        
+            return unit ? `${formatted} ${unit}` : formatted;
+        }
+
+        function initializeChart() {
+            const ctx = document.getElementById('recoveryChart').getContext('2d');
+            
+            Chart.defaults.color = '#cbd5e1';
+            Chart.defaults.borderColor = 'rgba(148, 163, 184, 0.1)';
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Recovery Index',
+                            data: [],
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#00d4ff',
+                            pointBorderColor: '#0a0b0d',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: '#00d4ff',
+                            pointHoverBorderColor: '#ffffff',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Selected Indicator',
+                            data: [],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#0a0b0d',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: '#ef4444',
+                            pointHoverBorderColor: '#ffffff',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutCubic'
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 25,
+                                color: '#f8fafc',
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 29, 35, 0.95)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#00d4ff',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            titleFont: {
+                                size: 14,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time Period',
+                                color: '#cbd5e1',
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)',
+                                drawTicks: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 12
+                                },
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Recovery Index (%)',
+                                color: '#00d4ff',
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 212, 255, 0.1)',
+                                drawTicks: false
+                            },
+                            ticks: {
+                                color: '#00d4ff',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Selected Indicator',
+                                color: '#ef4444',
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                                color: 'rgba(239, 68, 68, 0.1)',
+                                drawTicks: false
+                            },
+                            ticks: {
+                                color: '#ef4444',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!historyData.length) return;
+
+            const selectedIndicator = document.getElementById('indicatorSelect').value;
+            
+            const labels = historyData.map(item => {
+                const date = new Date(item.Date || item.date);
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short'
+                });
+            });
+
+            const recoveryData = historyData.map(item => parseFloat(item.recovery_index || 0));
+            const indicatorData = historyData.map(item => parseFloat(item[selectedIndicator] || 0));
+
+            // Update dataset labels
+            chart.data.datasets[1].label = getIndicatorLabel(selectedIndicator);
+            chart.options.scales.y1.title.text = getIndicatorLabel(selectedIndicator);
+
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = recoveryData;
+            chart.data.datasets[1].data = indicatorData;
+            chart.update('active');
+        }
+
+        function getIndicatorLabel(key) {
+            const labels = {
+                'gdp_real': 'Real GDP ($ Billion)',
+                'unemployment': 'Unemployment Rate (%)',
+                'exports': 'Exports ($ Billion)',
+                'trade_balance': 'Trade Balance ($ Million)',
+                'jobs': 'Job Openings (Thousand)',
+                'total_retail_sales': 'Retail Sales (Thousand)',
+                'industrial_production': 'Industrial Production (Index 2017 = 100)'
+            };
+            return labels[key] || key;
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(() => {
+                    fetchData();
+                    updateLastUpdated();
+                }, 30000); // 30 seconds
+                showStatus('Auto refresh enabled (30s interval)', 'info');
+            } else {
+                clearInterval(autoRefreshInterval);
+                showStatus('Auto refresh disabled', 'info');
+            }
+        }
+
+        function refreshData() {
+            fetchData();
+            updateLastUpdated();
+        }
+
+        function updateLastUpdated() {
+            const lastUpdated = document.getElementById('lastUpdated');
+            const now = new Date();
+            lastUpdated.innerHTML = `
+                <i class="fas fa-clock"></i>
+                <span>Last updated: ${now.toLocaleString()}</span>
+            `;
+        }
+
+        // Add CSS animation for slide out
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideOut {
+                to {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                @keyframes slideOut {
+                    to {
+                        transform: translateY(-100px);
+                        opacity: 0;
+                    }
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Set default end date to today
+        document.getElementById('endDate').valueAsDate = new Date();
+    </script>
+</body>
+</html>
