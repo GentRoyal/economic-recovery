@@ -10,5 +10,6 @@ Create an account and log in.
 Visit your account dashboard or go to https://fred.stlouisfed.org/docs/api/api_key.html
 Copy the 32-character API key generated for you.
 
-3. Edit the .env file
-In the root of the project, there is a .env file, replace YOUR_API_KEY with the actual api key
+3. Create a .env file in the root of the project, enter the following
+API_KEY=The 32-character API key generated for you
+DB_NAME=data.sqlite

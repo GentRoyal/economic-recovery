@@ -1,0 +1,43 @@
+name: CI/CD Deploy FastAPI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.12
+
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry install --no-root
+
+    - name: Build Docker image
+      run: docker build -t economic-recovery .
+
+    - name: Run Docker container
+  env:
+    API_KEY: ${{ secrets.API_KEY }}
+    DB_NAME: ${{ secrets.DB_NAME }}
+  run: |
+    # Stop and remove existing container if it exists
+    if [ $(docker ps -aq -f name=economic-recovery) ]; then
+      docker stop economic-recovery
+      docker rm economic-recovery
+    fi
+
+    # Run the new container
+    docker run -d --name economic-recovery -p 8000:8000 \
+      -e API_KEY=${{ secrets.API_KEY }} \
+      -e DB_NAME=${{ secrets.DB_NAME }} \
+      economic-recovery
